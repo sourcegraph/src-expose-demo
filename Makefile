@@ -2,33 +2,34 @@ NETWORK=sourcegraph
 DATA_DIR=/usr/app/data
 PORT=3434
 HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
-REPOS=Jam
+REPOS=./Jam ./Jamgraph
 
 get-sample-depot:
 	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
-	wget -qq ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
+	wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
 	unzip -qq sampledepot-nostreams.zip
 	rm -f sampledepot-nostreams.zip
 
-# Not using right now, as the Dockerfile downloads a built binary from Google cloud using
-# https://github.com/sourcegraph/sourcegraph/blob/master/dev/src-expose/release.sh
 compile:
 	rm -fr ./master.zip sourcegraph-master
-	wget -qq https://github.com/sourcegraph/sourcegraph/archive/master.zip
+	wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
 	unzip -qq master.zip
-	cd sourcegraph-master && \
+	cd ../sourcegraph && \
 		env GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
-		mv src-expose ../
+		mv src-expose ../src-expose-demo
 	chmod +x ./src-expose
 	rm -fr ./master.zip sourcegraph-master
 
-build: get-sample-depot
-	docker image build -t sourcegraph/src-expose:latest .
+build: compile get-sample-depot
+	@echo "\n[info]: building src-expose Docker image\n"
+	docker image build -t sourcegraph/src-expose:latest .	
 
 network:
+	@echo "\n[info]: creating "sourcgraph" Docker network\n"
 	docker network create $(NETWORK)
 
-run:	
+run:
+	@echo "\n[info]: running src-expose Docker container\n"
 	docker container run -it \
 		--rm \
 		--name src-expose \
@@ -36,10 +37,12 @@ run:
 		--volume ${HOST_DATA_DIR}:$(DATA_DIR) \
 		--network $(NETWORK) \
 		sourcegraph/src-expose:latest \
-		serve $(REPOS)
+		-addr 0.0.0.0:3434 \
+		$(REPOS)		
 
 sourcegraph:
-	docker image pull sourcegraph/server:insiders
+	@echo "\n[info]: running Sourcegraph server insiders Docker container\n"
+	# docker image pull sourcegraph/server:insiders
 	docker run --rm \
 		--name sourcegraph \
 		--network $(NETWORK) \
@@ -53,9 +56,11 @@ sourcegraph:
 ### DEBUGGING ###
 
 src-expose-shell:
+	@echo "\n[info]: Launching shell inside src-expose container \n"
 	docker container exec -it src-expose sh
 
 debug-container:
+	@echo "\n[info]: Launching Alpine container for debugging purposes \n"
 	docker container run -it \
 		--rm \
 		--network $(NETWORK) \
