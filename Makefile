@@ -5,15 +5,13 @@ HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
 REPOS=./Jam ./Jamgraph
 SOURCEGRAPH_VERSION := 3.9.1
 
-.PHONY: get-sample-depot
-get-sample-depot:
+PerforceSample:
 	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
 	wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
 	unzip -qq sampledepot-nostreams.zip
 	rm -f sampledepot-nostreams.zip
 
-.PHONY: compile
-compile:
+src-expose:
 	rm -fr ./master.zip sourcegraph-master
 	wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
 	unzip -qq master.zip
@@ -24,7 +22,7 @@ compile:
 	rm -fr ./master.zip sourcegraph-master
 
 .PHONY: build
-build: compile get-sample-depot
+build: src-expose PerforceSample
 	@echo "\n[info]: building src-expose Docker image\n"
 	docker image build -t sourcegraph/src-expose:latest .	
 
