@@ -5,6 +5,13 @@ HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
 REPOS=./Jam ./Jamgraph
 SOURCEGRAPH_VERSION := 3.9.1
 
+.PHONY: default
+default: build
+	@echo "Run sourcegraph and src-expose with:"
+	@echo "  make network"
+	@echo "  make sourcegraph"
+	@echo "  make run"
+
 PerforceSample:
 	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
 	wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
