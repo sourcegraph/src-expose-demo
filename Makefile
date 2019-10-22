@@ -3,6 +3,7 @@ DATA_DIR=/usr/app/data
 PORT=3434
 HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
 REPOS=./Jam ./Jamgraph
+SOURCEGRAPH_VERSION := 3.9.1
 
 get-sample-depot:
 	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
@@ -42,7 +43,6 @@ run:
 
 sourcegraph:
 	@echo "\n[info]: running Sourcegraph server insiders Docker container\n"
-	# docker image pull sourcegraph/server:insiders
 	docker run --rm \
 		--name sourcegraph \
 		--network $(NETWORK) \
@@ -50,7 +50,7 @@ sourcegraph:
 		--volume ~/.sourcegraph/data:/var/opt/sourcegraph \
 		--publish 7080:7080 \
 		--publish 2633:2633 \
-		sourcegraph/server:insiders
+		sourcegraph/server:$(SOURCEGRAPH_VERSION)
 
 
 ### DEBUGGING ###
