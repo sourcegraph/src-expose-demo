@@ -5,12 +5,14 @@ HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
 REPOS=./Jam ./Jamgraph
 SOURCEGRAPH_VERSION := 3.9.1
 
+.PHONY: get-sample-depot
 get-sample-depot:
 	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
 	wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
 	unzip -qq sampledepot-nostreams.zip
 	rm -f sampledepot-nostreams.zip
 
+.PHONY: compile
 compile:
 	rm -fr ./master.zip sourcegraph-master
 	wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
@@ -21,14 +23,17 @@ compile:
 	chmod +x ./src-expose
 	rm -fr ./master.zip sourcegraph-master
 
+.PHONY: build
 build: compile get-sample-depot
 	@echo "\n[info]: building src-expose Docker image\n"
 	docker image build -t sourcegraph/src-expose:latest .	
 
+.PHONY: network
 network:
 	@echo "\n[info]: creating "sourcgraph" Docker network\n"
 	docker network create $(NETWORK)
 
+.PHONY: run
 run:
 	@echo "\n[info]: running src-expose Docker container\n"
 	docker container run -it \
@@ -41,6 +46,7 @@ run:
 		-addr 0.0.0.0:3434 \
 		$(REPOS)		
 
+.PHONY: sourcegraph
 sourcegraph:
 	@echo "\n[info]: running Sourcegraph server insiders Docker container\n"
 	docker run --rm \
@@ -55,10 +61,12 @@ sourcegraph:
 
 ### DEBUGGING ###
 
+.PHONY: src-expose-shell
 src-expose-shell:
 	@echo "\n[info]: Launching shell inside src-expose container \n"
 	docker container exec -it src-expose sh
 
+.PHONY: debug-container
 debug-container:
 	@echo "\n[info]: Launching Alpine container for debugging purposes \n"
 	docker container run -it \
