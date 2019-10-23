@@ -1,46 +1,55 @@
-NETWORK=sourcegraph
-DATA_DIR=/usr/app/data
-PORT=3434
-HOST_DATA_DIR=$(shell pwd)/PerforceSample/depot
-REPOS=./Jam ./Jamgraph
+NETWORK := sourcegraph
+DATA_DIR := /usr/app/data
+PORT := 3434
+HOST_DATA_DIR := $(shell pwd)/projects
 SOURCEGRAPH_VERSION := 3.9.1
 
 .PHONY: default
-default: build
-	@echo "Run sourcegraph and src-expose with:"
+default:
+	@echo "\nRun sourcegraph and src-expose with:\n"
+	@echo "  make build"
 	@echo "  make network"
+	@echo "  make src-expose\n"	
 	@echo "  make sourcegraph"
-	@echo "  make run"
 
-PerforceSample:
-	rm -fr ./sampledepot-nostreams.zip ./PerforceSample
-	wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
-	unzip -qq sampledepot-nostreams.zip
-	rm -f sampledepot-nostreams.zip
+projects:
+	@echo "\n[info]: downloading sample directories (projects)\n"
+	@wget -O microservices-demo.zip https://github.com/GoogleCloudPlatform/microservices-demo/archive/master.zip
+	@unzip -qq microservices-demo.zip
+	@rm -f microservices-demo.zip
+	@mv microservices-demo-master/src/ projects
+	@ rm -fr microservices-demo-master
 
-src-expose:
-	rm -fr ./master.zip sourcegraph-master
-	wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
-	unzip -qq master.zip
-	cd ../sourcegraph && \
+compile:
+	@echo "\n[info]: compiling src-expose from sourcegraph master\n"
+	@rm -fr ./master.zip sourcegraph-master
+	@wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
+	@unzip -qq master.zip
+	@cd ../sourcegraph && \
 		env GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
 		mv src-expose ../src-expose-demo
-	chmod +x ./src-expose
-	rm -fr ./master.zip sourcegraph-master
+	@chmod +x ./src-expose
+	@rm -fr ./master.zip sourcegraph-master
 
 .PHONY: build
-build: src-expose PerforceSample
+build: compile
 	@echo "\n[info]: building src-expose Docker image\n"
-	docker image build -t sourcegraph/src-expose:latest .	
+	@docker image build -t sourcegraph/src-expose:latest .	
+	@rm src-expose
 
 .PHONY: network
 network:
-	@echo "\n[info]: creating "sourcgraph" Docker network\n"
-	docker network create $(NETWORK)
+	@echo "\n[info]: ensuring Docker network "sourcegraph" exists\n"
+	@$(eval NETWORK_ID=$(shell docker network ls -qf name=$(NETWORK)))
 
-.PHONY: run
-run:
+	@if [[ "$(NETWORK_ID)" = "" ]]; then \
+		docker network create $(NETWORK); \
+	fi
+
+.PHONY: src-expose
+src-expose: projects
 	@echo "\n[info]: running src-expose Docker container\n"
+	$(eval REPOS=$(shell cd projects && ls -d *))
 	docker container run -it \
 		--rm \
 		--name src-expose \
@@ -62,7 +71,6 @@ sourcegraph:
 		--publish 7080:7080 \
 		--publish 2633:2633 \
 		sourcegraph/server:$(SOURCEGRAPH_VERSION)
-
 
 ### DEBUGGING ###
 
