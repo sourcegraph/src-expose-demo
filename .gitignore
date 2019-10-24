@@ -1,3 +1,5 @@
 .DS_Store
-projects
 src-expose
+perforce/data
+projects
+.vscode

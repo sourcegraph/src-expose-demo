@@ -2,6 +2,7 @@ NETWORK := sourcegraph
 DATA_DIR := /usr/app/data
 PORT := 3434
 HOST_DATA_DIR := $(shell pwd)/projects
+PERFORCE_DATA_DIR := $(shell pwd)/perforce/data
 SOURCEGRAPH_VERSION := 3.9.1
 
 .PHONY: default
@@ -12,6 +13,39 @@ default:
 	@echo "  make src-expose\n"	
 	@echo "  make sourcegraph"
 
+###############
+##  Perforce ##
+###############
+#
+# Everything required for running a Perforce server with a sample depot 
+# for local testing of src-expose
+#
+# Requires p4d to be on $PATH
+#
+
+.PHONY: perforce
+perforce:
+	@echo "\n[info]: downloading and configuring Perforce depot\n"
+	@rm -fr $(PERFORCE_DATA_DIR)
+	@wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
+	@unzip -qq sampledepot-nostreams.zip && rm -f sampledepot-nostreams.zip
+	@mv PerforceSample $(PERFORCE_DATA_DIR)
+
+	p4d -r $(PERFORCE_DATA_DIR) -jr $(PERFORCE_DATA_DIR)/checkpoint
+	p4d -r $(PERFORCE_DATA_DIR) -xu	
+
+perforce-up:
+	@echo "\n[info]: starting Perforce server\n"
+	p4d -r $(PERFORCE_DATA_DIR) -p 1492 -d
+
+perforce-down:
+	@echo "\n[info]: stopping Perforce server\n"
+	@$(shell kill $(shell pgrep -f p4d) > /dev/null 2> /dev/null || :)
+
+## END PERFORCE ##
+
+
+# Dowload set of directories (simpler alternative to using Perforce)
 projects:
 	@echo "\n[info]: downloading sample directories (projects)\n"
 	@wget -O microservices-demo.zip https://github.com/GoogleCloudPlatform/microservices-demo/archive/master.zip
@@ -47,9 +81,9 @@ network:
 	fi
 
 .PHONY: src-expose
-src-expose: projects
+src-expose:
 	@echo "\n[info]: running src-expose Docker container\n"
-	$(eval REPOS=$(shell cd projects && ls -d *))
+	$(eval REPOS=$(shell cd $(HOST_DATA_DIR) && ls -d *))
 	docker container run -it \
 		--rm \
 		--name src-expose \
