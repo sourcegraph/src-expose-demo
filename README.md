@@ -29,11 +29,10 @@ It would be easy to get an existing Sourcegraph instance to communicate with the
 A Makefile is used to make it easy to run the required commands. To bring up `src-expose` and Sourcegraph:
 
 1. Run `make build` to compile `src-expose` and build the Docker image
-1. Run `make src-expose` to serve every sub-directory the `projects` directory as separate Git repositories
-1. Run `make sourcegraph` to run the Sourcegraph container**
-1. Go to http://localhost:7080/ to initialize Sourcegraph, then add an external service of type **Single Git repositories** for Sourcegraph to communicate with `src-expose`.
-
-Use the below JSON for the external service:
+2. Run `make src-expose` to serve every sub-directory under the `projects` directory as separate Git repositories
+3. Run `make sourcegraph` to run the Sourcegraph container
+4. Go to http://localhost:7080/ and initialize Sourcegraph
+5. Navigate to Admin > External services > Add external service > **Single Git repositories** using the below configuration:
 
 ```json
 {
@@ -43,6 +42,9 @@ Use the below JSON for the external service:
   ]
 }
 ```
+
+6. Navigate to Admin > Repositories and you should a list of repositories
+7. Search for `AdServiceClient` where you should see many results. Try filtering using `lang:java`
 
 To see an example of what `src-expose` is serving to Sourcegraph:
 
