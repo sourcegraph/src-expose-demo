@@ -3,22 +3,21 @@ DATA_DIR := /usr/app/data
 PORT := 3434
 HOST_DATA_DIR := $(shell pwd)/projects
 PERFORCE_DATA_DIR := $(shell pwd)/perforce/data
-SOURCEGRAPH_VERSION := 3.9.1
+SOURCEGRAPH_VERSION := 3.9.2
 
 .PHONY: default
 default:
 	@echo "\nRun sourcegraph and src-expose with:\n"
 	@echo "  make build"
-	@echo "  make network"
-	@echo "  make src-expose\n"	
-	@echo "  make sourcegraph"
+	@echo "  make src-expose"
+	@echo "  make sourcegraph\n"
 
 ###############
 ##  Perforce ##
 ###############
 #
 # Everything required for running a Perforce server with a sample depot 
-# for local testing of src-expose
+# for local testing of src-expose. This is a WIP.
 #
 # Requires p4d to be on $PATH
 #
@@ -44,7 +43,6 @@ perforce-down:
 
 ## END PERFORCE ##
 
-
 # Dowload set of directories (simpler alternative to using Perforce)
 projects:
 	@echo "\n[info]: downloading sample directories (projects)\n"
@@ -54,16 +52,16 @@ projects:
 	@mv microservices-demo-master/src/ projects
 	@ rm -fr microservices-demo-master
 
+GOOS := linux	
 compile:
 	@echo "\n[info]: compiling src-expose from sourcegraph master\n"
-	@rm -fr ./master.zip sourcegraph-master
 	@wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
 	@unzip -qq master.zip
-	@cd ../sourcegraph && \
-		env GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
-		mv src-expose ../src-expose-demo
-	@chmod +x ./src-expose
-	@rm -fr ./master.zip sourcegraph-master
+	@cd sourcegraph-master && \
+		env GOOS=$(GOOS) CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
+		mv src-expose ../
+	@chmod +x src-expose
+	@rm -fr master.zip sourcegraph-master
 
 .PHONY: build
 build: compile
@@ -73,7 +71,7 @@ build: compile
 
 .PHONY: network
 network:
-	@echo "\n[info]: ensuring Docker network "sourcegraph" exists\n"
+	@echo "\n[info]: ensuring Docker network '$(NETWORK)' exists\n"
 	@$(eval NETWORK_ID=$(shell docker network ls -qf name=$(NETWORK)))
 
 	@if [[ "$(NETWORK_ID)" = "" ]]; then \
@@ -81,7 +79,9 @@ network:
 	fi
 
 .PHONY: src-expose
-src-expose:
+OPTIONS := -before "echo '*** run command to sync from non-Git VCS ***'"
+# Removed `-sourcegraph-host souurcegraph` as it's unclear whether it will be merged
+src-expose: network projects
 	@echo "\n[info]: running src-expose Docker container\n"
 	$(eval REPOS=$(shell cd $(HOST_DATA_DIR) && ls -d *))
 	docker container run -it \
@@ -91,6 +91,7 @@ src-expose:
 		--volume ${HOST_DATA_DIR}:$(DATA_DIR) \
 		--network $(NETWORK) \
 		sourcegraph/src-expose:latest \
+		$(OPTIONS) \
 		-addr 0.0.0.0:3434 \
 		$(REPOS)		
 
@@ -106,7 +107,10 @@ sourcegraph:
 		--publish 2633:2633 \
 		sourcegraph/server:$(SOURCEGRAPH_VERSION)
 
-### DEBUGGING ###
+
+#################
+##  DEBUGGING  ##
+#################
 
 .PHONY: src-expose-shell
 src-expose-shell:

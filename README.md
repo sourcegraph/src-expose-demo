@@ -1,20 +1,39 @@
-# Making src-expose easy to test, demo, and debug
+# Exploring src-expose
 
-The `src-expose` service **exposes** a list of directories as Git repositories that Sourcegraph can clone and index.
+The `src-expose` CLI takes a list of directories as input and serves their contents as Git repositories over an HTTP API.
 
-It is designed, so either non-Git code hosts, or code not under version control, can still be indexed and searchable by Sourcegraph.
+Customers with non-Git code hosts such as Perforce, could create a workspace on a local server, the directories of which are served by `src-expose` as Git repositories. Sourcegraph can then clone and index these repositories for searching.
 
-## Overview
+## Purpose of this repository
 
-The `src-expose` binary is run in a Docker container that Sourcegraph communicates with inside a specially created Docker network.
+As `src-expose` is still in the discovery and experimentation phase, this repository was created to make it easy for customers and Sourcegraph developers to use and test `src-expose`.
 
-## Instructions
+`src-compose` is written in Go and compiled to a single binary. To replicate a realistic deployment scenario, `src-expose` is compiled and run from a Docker container that Sourcegraph communicates with inside a specially created Docker network. The `src-compose` binary is compiled with code from Sourcegraph's master branch to ensure it's always up-to-date.
 
-1. `make build` to build the docker container and pull down a sample Perforce depot
-1. `make network` to create the docker network for Sourcegraph and src-expose*
-1. In a terminal, run `make src-expose` to run the src-expose container
-1. In a different terminal, run `make sourcegraph` to run the Sourcegraph container**
-1. Create an external service of type **Single Git repositories** for Sourcegraph to communicate with src-expose
+## Requirements
+
+Docker and Make are the only software requirements.
+
+It has been tested on macOS Mojave but should work on Linux. It will likely not work on Windows 10 (yet).
+
+## Design
+
+To make this easy and to provide a reference implementation, this demo runs both `src-expose` and the Sourcegraph server. 
+
+> Note
+
+It would be easy to get an existing Sourcegraph instance to communicate with the `src-expose` container, as long as they are both added to a custom Docker network, and the container is named `src-expose`.
+
+## Usage
+
+A Makefile is used to make it easy to run the required commands. To bring up `src-expose` and Sourcegraph:
+
+1. Run `make build` to compile `src-expose` and build the Docker image
+1. Run `make src-expose` to serve every sub-directory the `projects` directory as separate Git repositories
+1. Run `make sourcegraph` to run the Sourcegraph container**
+1. Go to http://localhost:7080/ to initialize Sourcegraph, then add an external service of type **Single Git repositories** for Sourcegraph to communicate with `src-expose`.
+
+Use the below JSON for the external service:
 
 ```json
 {
@@ -25,8 +44,13 @@ The `src-expose` binary is run in a Docker container that Sourcegraph communicat
 }
 ```
 
+To see an example of what `src-expose` is serving to Sourcegraph:
+
+- Go to [http://localhost:3434/v1/list-repos](http://localhost:3434/v1/list-repos) to see the list of repositories
+- Go to [http://localhost:3434/repos/cartservice/.git/](http://localhost:3434/repos/cartservice/.git/) to see the contents of the `cartservice` Git repository.
+
 ## Notes
 
-- A custom Docker network is required to communicate with containers via a specified hostname.
-- If you already have a Sourcegraph instance, in order for it to see the src-expose container, create a Docker network called `src-expose`, then modify the docker container run command to include `--network sourcegraph`.
-- Has not been tested on Linux or Windows.
+- A custom Docker network is required to communicate with containers via a hostname as opposed to an IP address.
+- If you already have a Sourcegraph instance, for it to see the src-expose container, create a Docker network called `sourcegraph`, then modify the docker container run command to include `--network sourcegraph`.
+- This has not been tested on Linux or Windows.
