@@ -43,8 +43,8 @@ A Makefile is used to make it easy to run the required commands. To bring up `sr
 }
 ```
 
-6. Navigate to Admin > Repositories and you should a list of repositories
-7. Search for `AdServiceClient` where you should see many results. Try filtering using `lang:java`
+6.Navigate to Admin > Repositories and you should a list of repositories
+7.Search for `AdServiceClient` where you should see many results. Try filtering using `lang:java`
 
 To see an example of what `src-expose` is serving to Sourcegraph:
 

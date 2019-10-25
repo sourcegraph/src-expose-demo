@@ -70,34 +70,34 @@ network:
 		docker network create sourcegraph; \
 	fi
 
-HOST_DATA_DIR := projects
+SERVE_DIR := projects
 .PHONY: src-expose
 src-expose: network projects
 	@echo "[info]: running src-expose Docker container\n"
-	$(eval REPOS=$(shell cd `pwd`/$(HOST_DATA_DIR) && ls -d *))
-	@echo "[info]: serving subdirectories of '$(HOST_DATA_DIR)' as Git repositories\n"
+	$(eval REPOS=$(shell cd `pwd`/$(SERVE_DIR) && ls -d *))
+	@echo "[info]: serving subdirectories of '$(SERVE_DIR)' as Git repositories\n"
 	docker container run -it \
-		--rm \
-		--name src-expose \
-		--publish 3434:3434 \
-		--volume $(shell pwd)/${HOST_DATA_DIR}:/usr/app/data \
-		--network sourcegraph \
-		sourcegraph/src-expose:latest \
-		-before "echo '*** run command to sync from non-Git VCS ***'" \
-		-addr 0.0.0.0:3434 \
-		$(REPOS)		
+  --rm \
+  --name src-expose \
+  --publish 3434:3434 \
+  --volume $(shell pwd)/${SERVE_DIR}:/usr/app/data \
+  --network sourcegraph \
+  sourcegraph/src-expose:latest \
+  -before "echo '*** run command to sync from non-Git VCS ***'" \
+  -addr 0.0.0.0:3434 \
+  $(REPOS)
 
 .PHONY: sourcegraph
 sourcegraph:
 	@echo "[info]: running Sourcegraph server insiders Docker container\n"
 	docker run --rm \
-    --name sourcegraph \
-    --network sourcegraph \
-    --volume ~/.sourcegraph/config:/etc/sourcegraph \
-    --volume ~/.sourcegraph/data:/var/opt/sourcegraph \
-    --publish 7080:7080 \
-    --publish 2633:2633 \
-    sourcegraph/server:3.9.2
+  --name sourcegraph \
+  --network sourcegraph \
+  --volume ~/.sourcegraph/config:/etc/sourcegraph \
+  --volume ~/.sourcegraph/data:/var/opt/sourcegraph \
+  --publish 7080:7080 \
+  --publish 2633:2633 \
+  sourcegraph/server:3.9.2
 
 
 #################
