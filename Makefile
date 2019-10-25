@@ -1,10 +1,3 @@
-NETWORK := sourcegraph
-DATA_DIR := /usr/app/data
-PORT := 3434
-HOST_DATA_DIR := $(shell pwd)/projects
-PERFORCE_DATA_DIR := $(shell pwd)/perforce/data
-SOURCEGRAPH_VERSION := 3.9.2
-
 .PHONY: default
 default:
 	@echo "\nRun sourcegraph and src-expose with:\n"
@@ -21,10 +14,10 @@ default:
 #
 # Requires p4d to be on $PATH
 #
-
+PERFORCE_DATA_DIR := $(shell pwd)/perforce/data
 .PHONY: perforce
 perforce:
-	@echo "\n[info]: downloading and configuring Perforce depot\n"
+	@echo "[info]: downloading and configuring Perforce depot\n"
 	@rm -fr $(PERFORCE_DATA_DIR)
 	@wget ftp://ftp.perforce.com/perforce/tools/sampledepot-nostreams.zip
 	@unzip -qq sampledepot-nostreams.zip && rm -f sampledepot-nostreams.zip
@@ -34,78 +27,77 @@ perforce:
 	p4d -r $(PERFORCE_DATA_DIR) -xu	
 
 perforce-up:
-	@echo "\n[info]: starting Perforce server\n"
+	@echo "[info]: starting Perforce server\n"
 	p4d -r $(PERFORCE_DATA_DIR) -p 1492 -d
 
 perforce-down:
-	@echo "\n[info]: stopping Perforce server\n"
+	@echo "[info]: stopping Perforce server\n"
 	@$(shell kill $(shell pgrep -f p4d) > /dev/null 2> /dev/null || :)
 
 ## END PERFORCE ##
 
 # Dowload set of directories (simpler alternative to using Perforce)
 projects:
-	@echo "\n[info]: downloading sample directories (projects)\n"
+	@echo "[info]: downloading sample directories (projects)\n"
 	@wget -O microservices-demo.zip https://github.com/GoogleCloudPlatform/microservices-demo/archive/master.zip
 	@unzip -qq microservices-demo.zip
 	@rm -f microservices-demo.zip
 	@mv microservices-demo-master/src/ projects
 	@ rm -fr microservices-demo-master
 
-GOOS := linux	
 compile:
-	@echo "\n[info]: compiling src-expose from sourcegraph master\n"
+	@echo "[info]: compiling src-expose from sourcegraph master\n"
 	@wget https://github.com/sourcegraph/sourcegraph/archive/master.zip
 	@unzip -qq master.zip
 	@cd sourcegraph-master && \
-		env GOOS=$(GOOS) CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
+		env GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
 		mv src-expose ../
 	@chmod +x src-expose
 	@rm -fr master.zip sourcegraph-master
 
 .PHONY: build
 build: compile
-	@echo "\n[info]: building src-expose Docker image\n"
+	@echo "[info]: building src-expose Docker image\n"
 	@docker image build -t sourcegraph/src-expose:latest .	
 	@rm src-expose
 
 .PHONY: network
 network:
-	@echo "\n[info]: ensuring Docker network '$(NETWORK)' exists\n"
-	@$(eval NETWORK_ID=$(shell docker network ls -qf name=$(NETWORK)))
+	@echo "[info]: ensuring Docker network 'sourcegraph' exists\n"
+	@$(eval NETWORK_ID=$(shell docker network ls -qf name=sourcegraph))
 
 	@if [[ "$(NETWORK_ID)" = "" ]]; then \
-		docker network create $(NETWORK); \
+		docker network create sourcegraph; \
 	fi
 
+HOST_DATA_DIR := projects
 .PHONY: src-expose
-OPTIONS := -before "echo '*** run command to sync from non-Git VCS ***'"
-# Removed `-sourcegraph-host souurcegraph` as it's unclear whether it will be merged
 src-expose: network projects
-	@echo "\n[info]: running src-expose Docker container\n"
-	$(eval REPOS=$(shell cd $(HOST_DATA_DIR) && ls -d *))
+	@echo "[info]: running src-expose Docker container\n"
+	$(eval REPOS=$(shell cd `pwd`/$(HOST_DATA_DIR) && ls -d *))
+	@echo "[info]: serving subdirectories of '$(HOST_DATA_DIR)' as Git repositories\n"
 	docker container run -it \
 		--rm \
 		--name src-expose \
-		--publish $(PORT):$(PORT) \
-		--volume ${HOST_DATA_DIR}:$(DATA_DIR) \
-		--network $(NETWORK) \
+		--publish 3434:3434 \
+		--volume $(shell pwd)/${HOST_DATA_DIR}:/usr/app/data \
+		--network sourcegraph \
 		sourcegraph/src-expose:latest \
-		$(OPTIONS) \
+		-before "echo '*** run command to sync from non-Git VCS ***'" \
 		-addr 0.0.0.0:3434 \
 		$(REPOS)		
 
 .PHONY: sourcegraph
 sourcegraph:
-	@echo "\n[info]: running Sourcegraph server insiders Docker container\n"
+	@echo "[info]: running Sourcegraph server insiders Docker container\n"
 	docker run --rm \
-		--name sourcegraph \
-		--network $(NETWORK) \
-		--volume ~/.sourcegraph/config:/etc/sourcegraph \
-		--volume ~/.sourcegraph/data:/var/opt/sourcegraph \
-		--publish 7080:7080 \
-		--publish 2633:2633 \
-		sourcegraph/server:$(SOURCEGRAPH_VERSION)
+    --name sourcegraph \
+    --network sourcegraph \
+    --volume ~/.sourcegraph/config:/etc/sourcegraph \
+    --volume ~/.sourcegraph/data:/var/opt/sourcegraph \
+    --publish 7080:7080 \
+    --publish 2633:2633 \
+    sourcegraph/server:3.9.2
 
 
 #################
@@ -114,15 +106,15 @@ sourcegraph:
 
 .PHONY: src-expose-shell
 src-expose-shell:
-	@echo "\n[info]: Launching shell inside src-expose container \n"
-	docker container exec -it src-expose sh
+	@echo "[info]: Launching shell inside src-expose container \n"
+	@docker container exec -it src-expose sh
 
 .PHONY: debug-container
 debug-container:
-	@echo "\n[info]: Launching Alpine container for debugging purposes \n"
-	docker container run -it \
-		--rm \
-		--network $(NETWORK) \
+	@echo "[info]: Launching Alpine container for debugging purposes \n"
+	@docker container run -it \
+    --rm \
+    --network sourcegraph \
 		--volume /Users/rb/Projects/sourcegraph:/sourcegraph \
-		sourcegraph/alpine:3.9@sha256:e9264d4748e16de961a2b973cc12259dee1d33473633beccb1dfb8a0e62c6459 \
-		sh
+    sourcegraph/alpine:3.9@sha256:e9264d4748e16de961a2b973cc12259dee1d33473633beccb1dfb8a0e62c6459 \
+    sh
