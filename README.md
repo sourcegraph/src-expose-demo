@@ -34,7 +34,7 @@ To provide a reference implementation and get up and running quickly, a Makefile
 1. View the list of indexed repositories in Sourcegraph at **Site Admin > Repositories**
 1. Test by searching for `AdServiceClient`. Additionally, limit results to Java files using the `lang:java` filter.
 
-## Optional: to view the API data provided by `src-expose`:
+## Optional: to view the API data provided by src-expose
 
 1. Open [http://localhost:3434/v1/list-repos](http://localhost:3434/v1/list-repos) to see the list of repositories
 1. Open [http://localhost:3434/repos/cartservice/.git/](http://localhost:3434/repos/cartservice/.git/) to see the response for a specific repository
