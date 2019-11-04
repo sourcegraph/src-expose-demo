@@ -45,6 +45,12 @@ To provide a reference implementation and get up and running quickly, a Makefile
 
 Approximately one minute but this can vary. To force Sourcegraph to pull the latest changes, navigate to any repository, go to to **Settings > Mirroring**, then click on **Refresh now**. You can also increase the speed at which Sourcegraph indexes code changes by going to **Site admin > Configuration**, then setting `search.index.enabled` to `false`, but note this is only something you would want to do for demo purposes.
 
+### How can I get `src-expose` to serve code from my organization?
+
+Simply replace the directories inside `projects` with checked out code from your own code host. Then stop and restart the `src-expose` container.
+
+> Note Running the `make src-expose` command supplies the list directories inside `projects` so changes to the Makefile are required.
+
 
 ## Implementation notes
 
