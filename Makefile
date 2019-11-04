@@ -115,6 +115,5 @@ debug-container:
 	@docker container run -it \
     --rm \
     --network sourcegraph \
-		--volume /Users/rb/Projects/sourcegraph:/sourcegraph \
     sourcegraph/alpine:3.9@sha256:e9264d4748e16de961a2b973cc12259dee1d33473633beccb1dfb8a0e62c6459 \
     sh
