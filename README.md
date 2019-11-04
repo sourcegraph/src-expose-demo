@@ -1,42 +1,25 @@
-# Exploring src-expose
+# Enabling non-Git code hosts to integrate with Sourcegraph using src-expose
 
-The `src-expose` CLI takes a list of directories as input and serves their contents as Git repositories over an HTTP API.
+The `src-expose` CLI takes a list of directories as input and serves their contents as Git repositories over HTTP.
 
-Customers with non-Git code hosts such as Perforce, could create a workspace on a local server, the directories of which are served by `src-expose` as Git repositories. Sourcegraph can then clone and index these repositories for searching.
-
-See this 2 minute video showing end-to-end how to integrate non-Git code hosts with Sourcegraph.
+This 2 minute video shows end-to-end how to integrate non-Git code hosts with Sourcegraph.
 
 [![Screen Shot 2019-11-04 at 10 57 42 AM](https://user-images.githubusercontent.com/133014/68149262-6dd92980-fef2-11e9-8dc5-8c02f18b86d3.png)](https://vimeo.com/368923038)
 
-## Purpose of this repository
-
-As `src-expose` is still in the discovery and experimentation phase, this repository was created to make it easy for customers and Sourcegraph developers to use and test `src-expose`.
-
-`src-compose` is written in Go and compiled to a single binary. To replicate a realistic deployment scenario, `src-expose` is compiled and run from a Docker container that Sourcegraph communicates with inside a specially created Docker network. The `src-compose` binary is compiled with code from Sourcegraph's master branch to ensure it's always up-to-date.
-
 ## Requirements
 
-Docker and Make are the only software requirements.
-
-It has been tested on macOS Mojave but should work on Linux. It will likely not work on Windows 10 (yet).
-
-## Design
-
-To make this easy and to provide a reference implementation, this demo runs both `src-expose` and the Sourcegraph server. 
-
-> Note
-
-It would be easy to get an existing Sourcegraph instance to communicate with the `src-expose` container, as long as they are both added to a custom Docker network, and the container is named `src-expose`.
+- Docker
+- Make
+- Git (if cloning this repository, otherwise download as a zip file)
 
 ## Usage
 
-A Makefile is used to make it easy to run the required commands. To bring up `src-expose` and Sourcegraph:
+To provide a reference implementation and get up and running quickly, a Makefile provides commands to run `src-expose` and Sourcegraph using Docker:
 
-1. Run `make build` to compile `src-expose` and build the Docker image
-2. Run `make src-expose` to serve every sub-directory under the `projects` directory as separate Git repositories
-3. Run `make sourcegraph` to run the Sourcegraph container
-4. Go to http://localhost:7080/ and initialize Sourcegraph
-5. Navigate to Admin > External services > Add external service > **Single Git repositories** using the below configuration:
+1. Run `make build` to build the Docker image
+1. Run `make src-expose` to serve the directories in `projects` as individual Git repositories
+1. Run `make sourcegraph`, then open [http://localhost:7080/](http://localhost:7080/) and initialize Sourcegraph
+1. Navigate to **Site admin > External services > Add external service > Single Git repositories**, then use the below configuration:
 
 ```json
 {
@@ -47,16 +30,24 @@ A Makefile is used to make it easy to run the required commands. To bring up `sr
 }
 ```
 
-6.Navigate to Admin > Repositories and you should a list of repositories
-7.Search for `AdServiceClient` where you should see many results. Try filtering using `lang:java`
+1. For demo purposes, you can increase the speed at which Sourcegraph indexes code changes by going to **Site admin > Configuration**, then setting `search.index.enabled` to `false`.
+1. View the list of indexed repositories in Sourcegraph at **Site Admin > Repositories**
+1. Test by searching for `AdServiceClient`. Additionally, limit results to Java files using the `lang:java` filter.
 
-To see an example of what `src-expose` is serving to Sourcegraph:
+## Optional: to view the API data provided by `src-expose`:
 
-- Go to [http://localhost:3434/v1/list-repos](http://localhost:3434/v1/list-repos) to see the list of repositories
-- Go to [http://localhost:3434/repos/cartservice/.git/](http://localhost:3434/repos/cartservice/.git/) to see the contents of the `cartservice` Git repository.
+1. Open [http://localhost:3434/v1/list-repos](http://localhost:3434/v1/list-repos) to see the list of repositories
+1. Open [http://localhost:3434/repos/cartservice/.git/](http://localhost:3434/repos/cartservice/.git/) to see the response for a specific repository
 
-## Notes
+## FAQs
 
-- A custom Docker network is required to communicate with containers via a hostname as opposed to an IP address.
-- If you already have a Sourcegraph instance, for it to see the src-expose container, create a Docker network called `sourcegraph`, then modify the docker container run command to include `--network sourcegraph`.
-- This has not been tested on Linux or Windows.
+### How long does it take for changes to local code to be reflected in Sourcegraph?
+
+Approximately one minute but this can vary. To force Sourcegraph to pull the latest changes, navigate to any repository, go to to **Settings > Mirroring**, then click on **Refresh now**. You can also increase the speed at which Sourcegraph indexes code changes by going to **Site admin > Configuration**, then setting `search.index.enabled` to `false`, but note this is only something you would want to do for demo purposes.
+
+
+## Implementation notes
+
+- A custom Docker network is used so the `src-expose` container can set a custom hostname, removing the need to figure out what IP address the `src-expose` container has been assigned for use in the external service configuration.
+- If you want to run and expose `src-expose` to your existing Soucegraph instance, create a Docker network called `sourcegraph`, then modify the Sourcegraph `docker container run` command to include `--network sourcegraph`.
+- Not yet tested on Linux or Windows.
