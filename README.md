@@ -4,6 +4,10 @@ The `src-expose` CLI takes a list of directories as input and serves their conte
 
 Customers with non-Git code hosts such as Perforce, could create a workspace on a local server, the directories of which are served by `src-expose` as Git repositories. Sourcegraph can then clone and index these repositories for searching.
 
+See this 2 minute video showing end-to-end how to integrate non-Git code hosts with Sourcegraph.
+
+[![Screen Shot 2019-11-04 at 10 57 42 AM](https://user-images.githubusercontent.com/133014/68149262-6dd92980-fef2-11e9-8dc5-8c02f18b86d3.png)](https://vimeo.com/368923038)
+
 ## Purpose of this repository
 
 As `src-expose` is still in the discovery and experimentation phase, this repository was created to make it easy for customers and Sourcegraph developers to use and test `src-expose`.
