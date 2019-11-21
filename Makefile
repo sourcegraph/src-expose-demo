@@ -55,6 +55,13 @@ compile:
 	@chmod +x src-expose
 	@rm -fr master.zip sourcegraph-master
 
+compile-local:
+	@echo "[info]: compiling src-expose from local sourcegraph directory\n"	
+	@cd ../sourcegraph && \
+		env GOOS=linux CGO_ENABLED=0 GOARCH=amd64 go build ./dev/src-expose && \
+		mv src-expose ../src-expose-demo/
+	@chmod +x src-expose
+
 .PHONY: build
 build: compile
 	@echo "[info]: building src-expose Docker image\n"
@@ -86,6 +93,20 @@ src-expose: network projects
   -before "echo '*** run command to sync from non-Git VCS ***'" \
   -addr 0.0.0.0:3434 \
   $(REPOS)
+
+# usage: make src-expose-serve /home/user/repos
+# Path to local directory with Git repos must be absolute
+src-expose-serve: network
+	$(eval GIT_SERVE_DIR = $(filter-out $@,$(MAKECMDGOALS)))
+	@echo "[info]: serving git repositories from '$(GIT_SERVE_DIR)'"
+	docker container run -it \
+  --rm \
+  --name src-expose \
+  --publish 3434:3434 \
+  --volume $(GIT_SERVE_DIR):/usr/app/data \
+  --network sourcegraph \
+  sourcegraph/src-expose:latest \
+	serve -addr 0.0.0.0:3434 /usr/app/data
 
 .PHONY: sourcegraph
 sourcegraph:

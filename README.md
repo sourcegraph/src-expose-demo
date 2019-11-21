@@ -17,8 +17,14 @@ This 2 minute video shows end-to-end how to integrate non-Git code hosts with So
 To provide a reference implementation and get up and running quickly, a Makefile provides commands to run `src-expose` and Sourcegraph using Docker:
 
 1. Run `make build` to build the Docker image
-1. Run `make src-expose` to serve the directories in `projects` as individual Git repositories
-1. Run `make sourcegraph`, then open [http://localhost:7080/](http://localhost:7080/) and initialize Sourcegraph
+
+1. Now choose which mode you will run `src-expose` in:
+
+    - Serve a list of directories as git repositories: `make src-expose` (for making code in Git to Sourcegraph)
+    - Serve all git repositories found in a directory: `make src-expose-serve /absolute/path/to/directory` (for serving local Git repositories to Sourcegraph)
+
+1. Launch Sourcegraph with `make sourcegraph`, then open [http://localhost:7080/](http://localhost:7080/)
+
 1. Navigate to **Site admin > External services > Add external service > Single Git repositories**, then use the below configuration:
 
 ```json
@@ -29,6 +35,7 @@ To provide a reference implementation and get up and running quickly, a Makefile
   ]
 }
 ```
+
 
 1. For demo purposes, you can increase the speed at which Sourcegraph indexes code changes by going to **Site admin > Configuration**, then setting `search.index.enabled` to `false`.
 1. View the list of indexed repositories in Sourcegraph at **Site Admin > Repositories**
