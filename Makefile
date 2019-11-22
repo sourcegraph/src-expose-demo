@@ -1,4 +1,6 @@
 .PHONY: default
+SOURCEGRAPH_VERSION=3.10.0
+
 default:
 	@echo "\nRun sourcegraph and src-expose with:\n"
 	@echo "  make build"
@@ -118,7 +120,7 @@ sourcegraph:
   --volume ~/.sourcegraph/data:/var/opt/sourcegraph \
   --publish 7080:7080 \
   --publish 2633:2633 \
-  sourcegraph/server:3.9.2
+  sourcegraph/server:$(SOURCEGRAPH_VERSION)
 
 
 #################
