@@ -1,5 +1,5 @@
 .PHONY: default
-SOURCEGRAPH_VERSION=3.10.0
+SOURCEGRAPH_VERSION=3.14.0
 
 default:
 	@echo "\nRun sourcegraph and src-expose with:\n"
@@ -65,10 +65,10 @@ compile-local:
 	@chmod +x src-expose
 
 .PHONY: build
-build: compile
+build:
 	@echo "[info]: building src-expose Docker image\n"
+	@docker image pull sourcegraph/alpine:3.9
 	@docker image build -t sourcegraph/src-expose:latest .	
-	@rm src-expose
 
 .PHONY: network
 network:
