@@ -62,7 +62,7 @@ spec:
         - name: src-expose-code-dirs
           imagePullPolicy: IfNotPresent
           image: sourcegraph/src-expose:latest
-          command: ['/sbin/tini', '--', '/app/bin/entry.sh'] # serve all non-git directories in shared volume
+          command: ['/sbin/tini', '--', '/usr/local/bin/entry.sh'] # serve all non-git directories in shared volume
 
           ports:
             - name: app

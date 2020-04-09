@@ -27,12 +27,12 @@ build-code-sync:
 
 k8s-code-dirs: build-code-sync
 	kubectl apply -f code-dirs.yaml
-	@echo "[info]: Available internally at http://src-expose-code-dirs:3434
+	@echo "[info]: Available internally at http://src-expose-code-dirs:3434"
 	@echo "[info]: Available externally at http://localhost:30034"
 
 k8s-git-repos: build-code-sync
 	kubectl apply -f git-repos.yaml	
-	@echo "[info]: Available internally at http://src-expose-git-repos:3434
+	@echo "[info]: Available internally at http://src-expose-git-repos:3434"
 	@echo "[info]: Available externally at http://localhost:31034"
 
 k8s-delete:
