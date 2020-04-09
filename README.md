@@ -2,13 +2,13 @@
 
 The [`src-expose` CLI](https://docs.sourcegraph.com/admin/external_service/non-git) can sync changes to git and ordinary directories and serve them over http.
 
-The purpose of this repo is to provide working code examples for both Docker and Kubernetes that can be used for testing `src-expose` and as reference that can adapted for customer specific implementation.
+The purpose of this repo is to provide working code examples for both Docker and Kubernetes that can be used for testing `src-expose` and as be used as a starting point that can be adapted for customer specific implementation.
 
 ## The code
 
 This repo operates under the assumption that the best documentation is working code, not code snippets that can fall out of date and stop working.
 
-Therefore, everything works by running commands via `make` and the `Makefile` is your source of truth for how things work and what code is being executed.
+Therefore, everything works by running commands via `make` and the `Makefile` is your source of truth
 
 ## Requirements
 
@@ -26,13 +26,17 @@ There are two use cases covered here, both of which have Docker and Kubernetes e
 
 ## Using Docker
 
-Runs a single container using the `sourcegraph/src-expose` image and expects git repos and ordinary code directories to be found and mounted from the `./code` directory in this repository.
+Runs a single container using the `sourcegraph/src-expose` image. The demo expects Git repositories and ordinary code directories to be mounted from the `./code` directory in this repository, and you can populate the code directory by running:
 
-Run `./resources/code-download.sh` before running the Docker commands to populate the `code` directory, or you can alter the `Makefile` so existing code is mounted from your local machine.
+```sh
+./resources/code-download.sh
+```
 
 ### To serve ordinary code directories
 
-Notice in the `Makefile` that we're using a custom `--entrypoint` argument of `/app/bin/entry.sh`. The reason for this, is because by default, `src-expose` expects a list of directories to be passed to it, if not using the `serve` command. This custom script creates a list of the directories in the `/app/data` directory, then passes that to `src-expose` so you don't have to manually create this list.
+Notice in the `Makefile` that we're using a custom `--entrypoint` argument of `/usr/local/bin/entry.sh`. The reason for this, is because by default, `src-expose` expects a list of directories to be passed to it, if not using the `serve` command. 
+
+This custom [entry point script](https://github.com/sourcegraph/sourcegraph/blob/master/dev/src-expose/entry.sh) creates a list of the directories in the `/app/data` directory, then computes the list of directories to pass to `src-expose` so you don't have to manually create as an argument to pass in.
 
 To serve ordinary directories as git repositories:
 
@@ -42,17 +46,19 @@ make docker-code-dirs
 
 ### To serve existing git repositories
 
-Many customers have used a CLI tool to convert repositories from a non-git VCS into a git repository, but this does not include serving these repositories over HTTP. This is what `src-expose serve` is for, which has saved many customers the trouble of running a code host, purely for the purposes of serving local git repositories.
+Many customers have used a CLI tool to convert repositories from a non-git VCS into a git repository, but still need to make them available to Sourcegraph over HTTP.
 
-To serve git repositories, we use `src-expose serve`:
+This is what `src-expose serve` is for, which has saved many customers the trouble of running a Git code host, purely for the purposes of serving local git repositories.
+
+To serve existing git repositories over HTTP:
 
 ```sh
 make docker-git-repos
 ```
 
-### Creating the external service in Sourcegraph
+### Index repositories from `src-expose` in Sourcegraph
 
-Once you have the `src-expose` container running, you need to configure Sourcegraph to index the available repositories. To do this:
+Once you have the `src-expose` container running, you need to configure Sourcegraph to index the available repositories:
 
 1. Go to **Site admin** > **Manage repositories** > **Add repositories**
 1. Select **Generic Git host**
@@ -67,19 +73,19 @@ Once you have the `src-expose` container running, you need to configure Sourcegr
 }
 ```
 
-If running Docker for Desktop, you can use the hostname of `host.docker.internal:3434`, or you'll need the IP address or fully qualified hostname of the host machine running the `src-expose` container.
+If running Docker for Desktop, you can use the hostname of `host.docker.internal:3434`, otherwise you'll need the IP address or fully qualified hostname of the host machine running the `src-expose` container.
 
 ---
 
 ## Using Kubernetes
 
-To make things easy, we use a self-contained single Pod with 2 containers, one for syncing code, and the other for `src-expose` that both share the same volume that holds the code to be served.
+To make things easy, we use a single Pod with a shared volume and 2 containers, one for syncing code, and the other for `src-expose`.
 
-An init container is responsible for downloading the code to be served before the `src-expose` container is started which avoids the need to bind the Pod to a specific host in order to use a `hostPath` volume.
-
-Whether using an init container to download all code required for the Pod depends upon the size of the code being served, but hopefully this gives you an initial design to get started.
+An init container is responsible for downloading the code to be served before the `src-expose` container is started. This design allows the Pod to deployed to any node, with the drawback that the entire codebase must be downloaded.
 
 ![](resources/src-expose-k8s.png)
+
+Depending upon the size of code to be served, binding the Pod to a node and using a `hostPath` volume might be a better choice.
 
 ### The code sync container
 
@@ -109,11 +115,13 @@ The [git-repos.yaml](git-repos.yaml) file has the service and deployment for ser
 make k8s-git-repos
 ```
 
-### Creating the external service in Sourcegraph
+Once the init container has finished cloning the repositories, you'll be able to access the `src-expose` service externally at `http://localhost:31034`, and inside the cluster at `http://src-expose-git-repos:3434`.
+
+### Index repositories from `src-expose` in Sourcegraph
 
 The URL you will use for Sourcegraph to communicate with the `src-expose` service will depend on how you have deployed Sourcegraph. The above deployment options provide both an internal and external URL and this guide presumes the reader knows Docker and Kubernetes sufficiently well to know which one to chose.
 
-Once you have the `src-expose` Pod running, you need to configure Sourcegraph to index the available repositories. To do this:
+Once you have the `src-expose` Pod running, you need to configure Sourcegraph to index the available repositories:
 
 1. Go to **Site admin** > **Manage repositories** > **Add repositories**
 1. Select **Generic Git host**
@@ -121,7 +129,7 @@ Once you have the `src-expose` Pod running, you need to configure Sourcegraph to
 
 ```json
 {
-  "url": "http://<internal or external hostname/ip>:3434",
+  "url": "http://<internal or external hostname or ip>:3434",
   "repos": [
     "src-expose"
   ]

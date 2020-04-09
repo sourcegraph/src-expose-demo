@@ -8,7 +8,7 @@ docker-code-dirs:
 		--name src-expose \
 		--publish 3434:3434 \
 		--volume `pwd`/code/dirs:/app/data:delegated \
-		--entrypoint /app/bin/entry.sh \
+		--entrypoint /usr/local/bin/entry.sh \
 		sourcegraph/src-expose
 
 docker-git-repos:
