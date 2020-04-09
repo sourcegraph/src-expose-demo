@@ -1,0 +1,101 @@
+# src-expose deployment for non-git directories
+# 
+# Simple example that does not use a PVC or hostPath volume.
+# 
+# How it works:
+# - init container downloads code into shared volume
+# - src-expose container then serves from shared volume
+# - code sync container syncs code every minute
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: src-expose-code-dirs
+spec:
+  selector:
+    app: src-expose-code-dirs
+  ports:
+  - name: http
+    port: 3434
+    nodePort: 30034
+    targetPort: app
+  type: NodePort
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: src-expose-code-dirs
+  labels:
+    app: src-expose-code-dirs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: src-expose-code-dirs
+  template:
+    metadata:
+      name: src-expose-code-dirs
+      labels:
+        app: src-expose-code-dirs
+
+    spec:
+      initContainers:
+        - name: code-download-dirs
+          image: src-expose/code-sync:latest
+          imagePullPolicy: IfNotPresent
+          args: ["/app/bin/download.sh"]
+          volumeMounts:
+            - name: code
+              mountPath: /app/data
+
+      containers:
+        - name: code-sync-dirs
+          image: src-expose/code-sync:latest # Build by running `make build-code-sync`
+          imagePullPolicy: IfNotPresent
+          args: ["/app/bin/sync.sh"]
+          volumeMounts:
+            - name: code
+              mountPath: /app/data
+
+        - name: src-expose-code-dirs
+          imagePullPolicy: IfNotPresent
+          image: sourcegraph/src-expose:latest
+          command: ['/sbin/tini', '--', '/app/bin/entry.sh'] # serve all non-git directories in shared volume
+
+          ports:
+            - name: app
+              containerPort: 3434
+
+          volumeMounts:
+            - name: code
+              mountPath: /app/data
+
+          livenessProbe:
+            httpGet:
+              path: /v1/list-repos
+              port: app
+            initialDelaySeconds: 30
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /v1/list-repos
+              port: app
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+      
+      volumes:
+        - name: code
+          emptyDir: {}
+
+        # Or mount host directory which is easier, but requires
+        # binding the Pod to a specific node
+        # - name: code  
+        #   hostPath:
+        #     path: /path/to/code
+        #     type: DirectoryOrCreate
